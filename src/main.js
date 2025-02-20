@@ -455,42 +455,37 @@ function destroyAllBoard() {
  * @param {boolean} causedByPower - true si la explosión se inició por un power1 (no generar más power1 de 4).
  */
 function checkMatches(causedByPower = false) {
-    const allGroups = findMatchedGroups();
-
-    if (allGroups.length > 0) {
-        canMove = false;
-        let tilesToDestroy = [];
-
-        // Revisamos cada grupo
-        allGroups.forEach(group => {
-            // Si es EXACTAMENTE 4 y NO fue causado por power => genera power1
-            if (group.length === 4 && !causedByPower) {
-                // Uno se convierte en power1
-                const powerTile = group[0];
-                transformTileToPower(powerTile);
-                // El resto se destruye
-                tilesToDestroy.push(...group.slice(1));
-            } else {
-                // Grupos 3, 5, 6... o si es causedByPower => todos se destruyen
-                tilesToDestroy.push(...group);
-            }
-        });
-
-        explodeTiles(tilesToDestroy);
-
-        // Al terminar, bajamos y repetimos checkMatches
+    let result = findMatchedGroupsWithExpansion(causedByPower);
+    let tilesToDestroy = result.tilesToDestroy;
+    let powerTiles = result.powerTiles;
+  
+    if (tilesToDestroy.length > 0 || powerTiles.length > 0) {
+      canMove = false; // Bloquea mientras explotan
+  
+      // 1) Transformar en power1 las fichas que correspondan
+      powerTiles.forEach(tile => {
+        transformTileToPower(tile); // tu función actual
+      });
+  
+      // 2) Destruir el resto
+      if (tilesToDestroy.length > 0) {
+        explodeTiles(tilesToDestroy); // tu función actual que hace anim y set board[row][col]=null
+      }
+  
+      // 3) Luego dropTiles() y revisamos encadenamientos
+      setTimeout(() => {
+        dropTiles(); // tu lógica que hace caer fichas y rellena
         setTimeout(() => {
-            dropTiles();
-            setTimeout(() => {
-                checkMatches(causedByPower);
-            }, 400);
+          // Repetimos checkMatches por si se formaron nuevas combinaciones
+          checkMatches(causedByPower);
         }, 400);
-
+      }, 400);
+  
     } else {
-        // No hay más grupos => tablero estable
-        canMove = true;
+      // No hay más matches => tablero estable
+      canMove = true;
     }
-}
+  }
 
 /* ---------------------------------------------------------------------
    6) DETECTAR GRUPOS DE 3 O MÁS
@@ -645,3 +640,142 @@ function dropTiles() {
 function checkAnyMatchInBoard() {
     return findMatchedGroups().length > 0;
 }
+
+
+function findBaseMatches() {
+    let groups = [];
+  
+    // Horizontales
+    for (let row = 0; row < ROWS; row++) {
+      let streak = [board[row][0]];
+      for (let col = 1; col < COLS; col++) {
+        const currentTile = board[row][col];
+        if (
+          currentTile &&
+          streak[0] &&
+          currentTile.type === streak[0].type &&
+          currentTile.type !== SPECIAL_TILE
+        ) {
+          streak.push(currentTile);
+        } else {
+          if (streak.length >= 3) {
+            groups.push(streak);
+          }
+          streak = [currentTile];
+        }
+      }
+      if (streak.length >= 3) {
+        groups.push(streak);
+      }
+    }
+  
+    // Verticales
+    for (let col = 0; col < COLS; col++) {
+      let streak = [board[0][col]];
+      for (let row = 1; row < ROWS; row++) {
+        const currentTile = board[row][col];
+        if (
+          currentTile &&
+          streak[0] &&
+          currentTile.type === streak[0].type &&
+          currentTile.type !== SPECIAL_TILE
+        ) {
+          streak.push(currentTile);
+        } else {
+          if (streak.length >= 3) {
+            groups.push(streak);
+          }
+          streak = [currentTile];
+        }
+      }
+      if (streak.length >= 3) {
+        groups.push(streak);
+      }
+    }
+  
+    return groups;
+  }
+
+  function getNeighbors(row, col) {
+    let neighbors = [];
+  
+    // Arriba
+    if (row > 0 && board[row - 1][col]) {
+      neighbors.push(board[row - 1][col]);
+    }
+    // Abajo
+    if (row < ROWS - 1 && board[row + 1][col]) {
+      neighbors.push(board[row + 1][col]);
+    }
+    // Izquierda
+    if (col > 0 && board[row][col - 1]) {
+      neighbors.push(board[row][col - 1]);
+    }
+    // Derecha
+    if (col < COLS - 1 && board[row][col + 1]) {
+      neighbors.push(board[row][col + 1]);
+    }
+  
+    return neighbors;
+  }
+
+  function floodFill(tile) {
+    if (!tile) return [];
+  
+    const targetType = tile.type;
+    let queue = [tile];
+    let visited = new Set([tile]);
+    let result = [tile];
+  
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const neighbors = getNeighbors(current.row, current.col);
+  
+      for (let n of neighbors) {
+        if (!visited.has(n) && n.type === targetType) {
+          visited.add(n);
+          queue.push(n);
+          result.push(n);
+        }
+      }
+    }
+    return result;
+  }
+
+  function findMatchedGroupsWithExpansion(causedByPower = false) {
+    const baseMatches = findBaseMatches();
+    let allTilesToDestroy = new Set();
+    let powerTiles = [];
+  
+    for (let group of baseMatches) {
+      if (group.length >= 3) {
+        // Verificamos si EXACTAMENTE 4 y no viene de power
+        if (group.length === 4 && !causedByPower) {
+          // Escogemos la primera para hacer power
+          powerTiles.push(group[0]);
+        }
+  
+        // Flood fill desde el primer tile (podrías floodFill todos, 
+        // pero con uno basta en un match normal de 3+)
+        const tile = group[0];
+        if (!tile) continue;
+  
+        const expandedGroup = floodFill(tile);
+        for (let t of expandedGroup) {
+          allTilesToDestroy.add(t);
+        }
+      }
+    }
+  
+    // Si una tile se vuelve power, NO se destruye
+    for (let pTile of powerTiles) {
+      if (allTilesToDestroy.has(pTile)) {
+        allTilesToDestroy.delete(pTile);
+      }
+    }
+  
+    return {
+      tilesToDestroy: Array.from(allTilesToDestroy),
+      powerTiles: powerTiles
+    };
+  }
