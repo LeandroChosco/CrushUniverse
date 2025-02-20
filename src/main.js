@@ -28,6 +28,8 @@ let canMove = true;
 let score = 0;  
 let scene;  
 let movableBlockType = null; // Bloque habilitado cada 5s
+let isDragging = false;
+
 
 // Opcional: mostrar puntaje en HTML
 const scoreDisplay = document.getElementById("score-display");
@@ -63,17 +65,7 @@ function update() {}
 /* ---------------------------------------------------------------------
    1) BLOQUES HABILITADOS CADA 5s
    --------------------------------------------------------------------- */
-function pickNewMovableBlockType() {
-    // Restaura la escala del anterior
-    if (movableBlockType) {
-        resetScaleToDefault(movableBlockType);
-    }
-    // Escoge uno nuevo
-    movableBlockType = Phaser.Math.RND.pick(TILE_TYPES);
 
-    // Escala 1.2 a los bloques de ese tipo
-    highlightMovableBlocks(movableBlockType);
-}
 
 function highlightMovableBlocks(blockType) {
     for (let row = 0; row < ROWS; row++) {
@@ -107,6 +99,38 @@ function resetScaleToDefault(blockType) {
     }
 }
 
+
+function pickNewMovableBlockType() {
+    // Si hay un arrastre en curso, revertimos
+    if (isDragging && selectedTile) {
+      revertDraggingTile(selectedTile);
+    }
+  
+    // Restaura la escala del tipo anterior
+    if (movableBlockType) {
+      resetScaleToDefault(movableBlockType);
+    }
+  
+    // Escoge uno nuevo
+    movableBlockType = Phaser.Math.RND.pick(TILE_TYPES);
+  
+    // Destaca el nuevo tipo
+    highlightMovableBlocks(movableBlockType);
+  }
+  
+  function revertDraggingTile(tile) {
+    scene.tweens.add({
+      targets: tile,
+      x: tile.col * TILE_SIZE + TILE_SIZE / 2,
+      y: tile.row * TILE_SIZE + TILE_SIZE / 2,
+      duration: 200,
+      ease: 'Power2'
+    });
+  
+    // “fin” del arrastre
+    selectedTile = null;
+    isDragging = false;
+  }
 /* ---------------------------------------------------------------------
    2) GENERACIÓN DE TABLERO
    --------------------------------------------------------------------- */
@@ -138,50 +162,67 @@ function hasInitialMatches() {
 }
 
 function addTile(scene, row, col) {
+    // Selecciona aleatoriamente el tipo de bloque
     const tileType = Phaser.Math.RND.pick(TILE_TYPES);
+  
+    // Crea el sprite en la posición (col, row) multiplicando por TILE_SIZE
     const tile = scene.add.sprite(
-        col * TILE_SIZE + TILE_SIZE / 2,
-        row * TILE_SIZE + TILE_SIZE / 2,
-        tileType
+      col * TILE_SIZE + TILE_SIZE / 2,
+      row * TILE_SIZE + TILE_SIZE / 2,
+      tileType
     );
-
+  
+    // Fija el tamaño final de la imagen en (TILE_SIZE x TILE_SIZE)
+    tile.setDisplaySize(TILE_SIZE, TILE_SIZE);
+  
+    // Lo marcamos como interactivo y draggable
     tile.setInteractive();
     scene.input.setDraggable(tile);
+  
+    // Guarda su posición lógica y tipo
     tile.row = row;
     tile.col = col;
     tile.type = tileType;
-
-    // Animación de aparición
-    tile.setScale(0);
+  
+    // Animación de entrada: con alpha en vez de scale
+    tile.alpha = 0;
     scene.tweens.add({
-        targets: tile,
-        scale: 1,
-        duration: 200,
-        ease: 'Back'
+      targets: tile,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2'
     });
-
-    // Eventos de arrastre (solo movibles si canMove y es tile activo o power1)
+  
     tile.on('dragstart', () => {
         if (!canMove) return;
         if (tile.type !== movableBlockType && tile.type !== SPECIAL_TILE) return;
+      
         selectedTile = tile;
-    });
-    
-    tile.on('drag', (pointer, dragX, dragY) => {
+        isDragging = true;
+      });
+      
+      tile.on('drag', (pointer, dragX, dragY) => {
         if (!canMove) return;
         if (tile.type !== movableBlockType && tile.type !== SPECIAL_TILE) return;
+      
         tile.x = dragX;
         tile.y = dragY;
-    });
-    
-    tile.on('dragend', () => {
+      });
+      
+      tile.on('dragend', () => {
         if (!canMove) return;
         if (tile.type !== movableBlockType && tile.type !== SPECIAL_TILE) return;
+      
         handleTileDrop(tile);
-    });
-
+        selectedTile = null;
+        isDragging = false;
+      });
+      
+  
+    // Almacena el tile en la matriz board
     board[row][col] = tile;
-}
+  }
+  
 
 /* ---------------------------------------------------------------------
    3) INTERCAMBIO DE BLOQUES
@@ -512,22 +553,30 @@ function findMatchedGroups() {
 /* ---------------------------------------------------------------------
    7) CREAR power1
    --------------------------------------------------------------------- */
-function transformTileToPower(tile) {
+   function transformTileToPower(tile) {
     tile.setTexture(SPECIAL_TILE);
     tile.type = SPECIAL_TILE;
-
-    // Animación de "pulso"
+  
+    // Guarda el tamaño base actual:
+    const baseW = tile.displayWidth;
+    const baseH = tile.displayHeight;
+  
+    // Ejemplo: pulso a 1.4 y regresa, luego queda en 1.2
     scene.tweens.add({
-        targets: tile,
-        scale: 1.4,
-        duration: 200,
-        yoyo: true,
-        ease: 'Power2',
-        onComplete: () => {
-            tile.setScale(1.2);
-        }
+      targets: tile,
+      displayWidth: baseW * 1.4,
+      displayHeight: baseH * 1.4,
+      duration: 200,
+      yoyo: true,      // vuelve al tamaño original tras la animación
+      ease: 'Power2',
+      onComplete: () => {
+        // Al final del pulso, dejamos el tile un poco más grande (1.2)
+        tile.displayWidth = baseW * 1.2;
+        tile.displayHeight = baseH * 1.2;
+      }
     });
-}
+  }
+  
 
 /* ---------------------------------------------------------------------
    8) EXPLOSIÓN DE TILES

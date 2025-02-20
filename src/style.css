@@ -2,17 +2,14 @@
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 a {
   font-weight: 500;
   color: #646cff;
@@ -24,10 +21,13 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  padding: 0;
+  min-width: 320px;    /* Para pantallas muy pequeñas */
   min-height: 100vh;
+  display: flex;
+  flex-direction: column; /* Para apilar HUD y juego en columna */
+  align-items: center;
+  background-color: #242424;
 }
 
 h1 {
@@ -97,52 +97,37 @@ button:focus-visible {
 /* Contenedor del HUD */
 #hud-container {
   display: flex;
-  justify-content: space-around; /* Distribuye los elementos dentro del HUD */
+  justify-content: center;
   align-items: center;
-  width: 700px; /* Mismo ancho que el juego */
-  height: 50px; /* Altura fija */
-  position: absolute; /* Fijarlo sobre el tablero */
-  top: 20px; /* Ajustar espacio desde arriba */
-  left: 50%; /* Posicionar en el centro de la pantalla */
-  transform: translateX(-50%); /* 🔥 Truco para centrarlo horizontalmente */
-  background: #222; /* Fondo oscuro */
+  /* Para que sea centrado y no exceda 700px */
+  max-width: 700px;
+  width: 100%;
+  margin: 20px auto; /* Separación de 20px desde arriba y centrado horizontal */
+  background: #222; 
   color: white;
   font-size: 20px;
   font-weight: bold;
   border-radius: 10px;
   padding: 10px;
-  z-index: 10; /* Asegura que esté sobre el canvas del juego */
 }
 
 /* Centrar el contenedor del juego */
 #game-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 700px; /* Mismo ancho que el juego */
-  height: 700px; /* Mismo alto que el tablero */
-  margin: 0 auto; /* Centrar horizontalmente */
-  position: relative; /* Mantener alineación con el HUD */
-}
-#timer-display {
-  text-align: center;
-  font-size: 22px;
-  color: #00ffcc; /* Color llamativo para el tiempo */
+  /* El canvas de Phaser se ajustará aquí */
+  max-width: 700px;
+  width: 100%;
+  aspect-ratio: 1 / 1;  /* Mantener un formato cuadrado */
+  margin-bottom: 20px;  /* Espacio extra debajo si quieres */
+  position: relative;
+  /* Con FIT en Phaser se escalará dentro de este div */
 }
 
 /* Contador de Puntaje */
 #score-display {
-  text-align: center;
   font-size: 22px;
-  color: #FFD700; /* Color dorado */
+  color: #FFD700; /* Dorado */
 }
 
-/* Contador de Movimientos */
-#moves-display {
-  text-align: center;
-  font-size: 22px;
-  color: #FF5733; /* Color naranja */
-}
 
 /* Contenedor del bloque objetivo */
 #target-block-container {
@@ -160,4 +145,10 @@ button:focus-visible {
   width: 40px;
   height: 40px;
   margin-left: 10px;
+}
+@media (max-width: 500px) {
+  #hud-container {
+    font-size: 16px;
+    padding: 8px;
+  }
 }
