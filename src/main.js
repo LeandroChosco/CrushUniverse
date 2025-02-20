@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 
+
 const config = {
     type: Phaser.AUTO,
     width: 700,
@@ -35,11 +36,11 @@ if (scoreDisplay) {
 }
 
 function preload() {
-    this.load.image('tile1', '../public/assets/tile1.png');
-    this.load.image('tile2', '../public/assets/tile2.png');
-    this.load.image('tile3', '../public/assets/tile3.png');
-    this.load.image('tile4', '../public/assets/tile4.png');
-    this.load.image('tile5', '../public/assets/tile5.png');
+    this.load.image('tile1', '/assets/tile1.png');
+    this.load.image('tile2', '/assets/tile2.png');
+    this.load.image('tile3', '/assets/tile3.png');
+    this.load.image('tile4', '/assets/tile4.png');
+    this.load.image('tile5', '/assets/tile5.png');
     this.load.image(SPECIAL_TILE, '../public/assets/power1.png');
 }
 

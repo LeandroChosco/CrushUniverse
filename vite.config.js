@@ -1,24 +1,25 @@
 // vite.config.js
+// vite.config.js
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  // Base es la ruta base de tu aplicación
-  // (usualmente se deja "/" por defecto)
+  // Indica la ruta base de tu aplicación.
+  // Normalmente se deja '/' al desarrollar localmente.
   base: '/',
 
-  // Configuración de build
-  build: {
-    // La carpeta donde se generarán tus archivos compilados
-    outDir: 'dist',
-
-    // Otras opciones de build
-    // por ejemplo sourcemap: true
-    // sourcemap: true,
+  // Configuración para el servidor de desarrollo
+  server: {
+    // Puerto en el que correrá Vite en local.
+    port: 3000,
+    // Abre automáticamente el navegador al iniciar el servidor.
+    open: true
   },
 
-  // Configuración del servidor de desarrollo
-  server: {
-    port: 3000
+  // Configuración para el build (para producción)
+  build: {
+    // Carpeta donde se generarán los archivos cuando ejecutes `npm run build`
+    outDir: 'dist'
   }
 })
+
 
