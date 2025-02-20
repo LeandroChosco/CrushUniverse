@@ -41,7 +41,7 @@ function preload() {
     this.load.image('tile3', '/assets/tile3.png');
     this.load.image('tile4', '/assets/tile4.png');
     this.load.image('tile5', '/assets/tile5.png');
-    this.load.image(SPECIAL_TILE, '../public/assets/power1.png');
+    this.load.image(SPECIAL_TILE, '/assets/power1.png');
 }
 
 function create() {
